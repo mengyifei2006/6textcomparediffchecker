@@ -5,68 +5,565 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text Compare Tool - Free Online Diff Checker</title>
     <meta name="description" content="A free online diff checker. Easily compare two text files to find the differences. See additions and deletions highlighted instantly in your browser.">
-    <link rel="stylesheet" href="style.css">
+    
     <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-1ZSNQDKVX8"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1ZSNQDKVX8"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-1ZSNQDKVX8');
+    </script>
 
-  gtag('config', 'G-1ZSNQDKVX8');
-</script>
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1336697940295449" crossorigin="anonymous"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- jsDiff -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .editor-font { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Custom Scrollbar for macOS look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #94a3b8;
+        }
+
+        /* Line Number User Select */
+        .line-num { user-select: none; }
+    </style>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Text Compare Tool",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "A free online diff checker to compare text files and highlight differences."
+    }
+    </script>
 </head>
-<body>
-    <div class="container">
-        <h1>Online Text Compare (Diff Checker)</h1>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
 
-        <div class="panels">
-            <div class="panel">
-                <textarea id="text-a" placeholder="Paste original text here..."></textarea>
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <svg class="w-8 h-8 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h1 class="text-xl font-bold tracking-tight text-slate-800">Text Compare</h1>
             </div>
-            <div class="panel">
-                <textarea id="text-b" placeholder="Paste modified text here..."></textarea>
+            <div id="diff-stats" class="hidden text-sm font-medium flex gap-4">
+                <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-700"><span id="stat-removals">0</span> Removals</span>
+                <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700"><span id="stat-additions">0</span> Additions</span>
             </div>
         </div>
+    </nav>
 
-        <div class="controls">
-            <button id="compare-btn">COMPARE</button>
-            <button id="clear-btn">Clear</button>
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Controls & Input Area -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+            
+            <!-- Toolbar -->
+            <div class="bg-slate-50 border-b border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <button id="compare-btn" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        Compare
+                    </button>
+                    <button id="clear-btn" class="text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg font-medium transition-colors text-sm">
+                        Clear
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-6 text-sm text-slate-600">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="sync-scroll" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" checked>
+                        <span>Sync Scroll</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="ignore-whitespace" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                        <span>Ignore Whitespace</span>
+                    </label>
+                    <button id="swap-btn" class="flex items-center gap-1 hover:text-brand-600 transition-colors" title="Swap Sides">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                        Swap
+                    </button>
+                </div>
+            </div>
+
+            <!-- Input Panels -->
+            <div id="input-container" class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200 h-[500px]">
+                <div class="flex flex-col h-full relative group">
+                    <div class="absolute top-0 left-0 right-0 bg-slate-50/90 backdrop-blur border-b border-slate-100 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider z-10 flex justify-between">
+                        Original Text
+                        <span class="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 text-[10px]">Paste or type...</span>
+                    </div>
+                    <textarea id="text-original" class="flex-grow w-full h-full p-4 pt-10 resize-none outline-none editor-font text-sm leading-6 text-slate-700 bg-white" placeholder="Paste your original text here..." spellcheck="false"></textarea>
+                </div>
+                <div class="flex flex-col h-full relative group">
+                    <div class="absolute top-0 left-0 right-0 bg-slate-50/90 backdrop-blur border-b border-slate-100 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider z-10 flex justify-between">
+                        Modified Text
+                        <span class="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 text-[10px]">Paste or type...</span>
+                    </div>
+                    <textarea id="text-modified" class="flex-grow w-full h-full p-4 pt-10 resize-none outline-none editor-font text-sm leading-6 text-slate-700 bg-white" placeholder="Paste your modified text here..." spellcheck="false"></textarea>
+                </div>
+            </div>
+
+            <!-- Diff Results (Hidden by default) -->
+            <div id="result-container" class="hidden h-[600px] flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-200 bg-white relative">
+                 <!-- Left Panel (Original) -->
+                 <div class="flex-1 flex flex-col min-w-0 bg-white overflow-hidden relative">
+                    <div class="bg-slate-50 border-b border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-20">
+                        Original Text
+                    </div>
+                    <div id="diff-left" class="overflow-auto flex-grow editor-font text-sm leading-6 relative">
+                        <!-- Content injected by JS -->
+                    </div>
+                 </div>
+
+                 <!-- Right Panel (Modified) -->
+                 <div class="flex-1 flex flex-col min-w-0 bg-white overflow-hidden relative">
+                    <div class="bg-slate-50 border-b border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-20">
+                        Modified Text
+                    </div>
+                    <div id="diff-right" class="overflow-auto flex-grow editor-font text-sm leading-6 relative">
+                         <!-- Content injected by JS -->
+                    </div>
+                 </div>
+            </div>
+
         </div>
 
-        <div id="diff-output"></div>
+        <!-- Ad Banner Placeholder -->
+        <div class="w-full h-24 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center mb-12 relative overflow-hidden">
+            <span class="text-slate-400 font-medium text-sm">Advertisement Space</span>
+            <!-- AdSense Code Here -->
+        </div>
 
-        <div class="content">
-            <h2>How to Use This Diff Checker</h2>
-            <p>Using this diff checker is simple. Just paste your original text in the top box and the modified text in the bottom box. Then, click the "COMPARE" button. The differences will be shown in the result area below, with additions highlighted in green and deletions highlighted in red. This allows you to quickly see what has changed between the two versions of your text.</p>
-            <p>The "Clear" button will instantly empty both input fields and the result area, allowing you to start a new comparison.</p>
+        <!-- SEO Content -->
+        <article class="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-800 prose-p:text-slate-600 prose-a:text-brand-600">
+            <h2>How to Compare Text Files Online</h2>
+            <p>
+                Comparing text files for differences is a common task for developers, writers, and editors. Whether you're tracking code changes, checking document revisions, or just spotting typos, our <strong>Text Compare Tool</strong> makes it effortless.
+            </p>
+            
+            <div class="grid md:grid-cols-3 gap-6 my-8 not-prose">
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="w-10 h-10 bg-brand-50 rounded-lg flex items-center justify-center text-brand-600 mb-4 font-bold">1</div>
+                    <h3 class="font-bold text-slate-800 mb-2">Paste Texts</h3>
+                    <p class="text-sm text-slate-600">Copy your original text into the left panel and the modified version into the right panel.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="w-10 h-10 bg-brand-50 rounded-lg flex items-center justify-center text-brand-600 mb-4 font-bold">2</div>
+                    <h3 class="font-bold text-slate-800 mb-2">Click Compare</h3>
+                    <p class="text-sm text-slate-600">Hit the "Compare" button. Our algorithm instantly analyzes the differences.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="w-10 h-10 bg-brand-50 rounded-lg flex items-center justify-center text-brand-600 mb-4 font-bold">3</div>
+                    <h3 class="font-bold text-slate-800 mb-2">Review Diff</h3>
+                    <p class="text-sm text-slate-600">View changes side-by-side. Deletions are red, additions are green. Use sync scroll to navigate.</p>
+                </div>
+            </div>
 
-            <h2>Who Uses a Text Compare Tool?</h2>
-            <p>A text compare tool, or diff tool, is essential for anyone working with different versions of text or code. It's a fundamental utility for many professions.</p>
+            <h3>Why Use This Diff Checker?</h3>
             <ul>
-                <li>
-                    <h3>Developers:</h3>
-                    <p>Developers use diff checkers to compare versions of their code files. When working with version control systems like Git, seeing what lines of code have been added, modified, or removed is crucial for code reviews, merging branches, and understanding the history of a project.</p>
-                </li>
-                <li>
-                    <h3>Writers & Editors:</h3>
-                    <p>Writers and editors constantly revise their work. A diff tool helps them compare different drafts of an article, book, or report. It makes it easy to spot changes in wording, see which paragraphs have been rewritten, and track revisions made by collaborators.</p>
-                </li>
-                <li>
-                    <h3>Lawyers:</h3>
-                    <p>In the legal field, precision is everything. Lawyers use text comparison tools to compare different versions of contracts and legal documents. This ensures that all amendments and changes are correctly tracked and accounted for, preventing costly errors.</p>
-                </li>
+                <li><strong>Privacy First:</strong> Comparison happens entirely in your browser. No data is sent to any server.</li>
+                <li><strong>Word-Level Precision:</strong> Unlike simple line checkers, we highlight specific word changes within lines.</li>
+                <li><strong>Synchronized Scrolling:</strong> Navigate long documents easily with locked scrolling between panels.</li>
+                <li><strong>No Installation:</strong> Works instantly on any device, Mac, Windows, or Mobile.</li>
             </ul>
 
-            <h2>Text Compare FAQ</h2>
-            <h3>Is this tool free?</h3>
-            <p>Yes, this online diff checker is 100% free. There are no hidden costs or limitations. You can use it as much as you need.</p>
-            <h3>Is my data secure?</h3>
-            <p>Yes, your data is secure. All comparisons are performed 100% locally in your web browser using JavaScript. Your text is never sent to our servers, ensuring your privacy and data security.</p>
+            <h3>Common Use Cases</h3>
+            <ul>
+                <li><strong>Programming:</strong> Compare code snippets, JSON, XML, or config files.</li>
+                <li><strong>Legal & Business:</strong> Check contract revisions or policy updates.</li>
+                <li><strong>Content Creation:</strong> Review article drafts and edits.</li>
+            </ul>
+        </article>
+        
+        <!-- Ad Footer Placeholder -->
+        <div class="w-full h-24 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center mt-12 relative overflow-hidden">
+            <span class="text-slate-400 font-medium text-sm">Advertisement Space</span>
+            <!-- AdSense Code Here -->
         </div>
-    </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
-    <script src="script.js"></script>
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 mt-12 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
+            &copy; <script>document.write(new Date().getFullYear())</script> Text Compare Tool. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const originalInput = document.getElementById('text-original');
+        const modifiedInput = document.getElementById('text-modified');
+        const compareBtn = document.getElementById('compare-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const swapBtn = document.getElementById('swap-btn');
+        const inputContainer = document.getElementById('input-container');
+        const resultContainer = document.getElementById('result-container');
+        const diffLeft = document.getElementById('diff-left');
+        const diffRight = document.getElementById('diff-right');
+        const diffStats = document.getElementById('diff-stats');
+        const statRemovals = document.getElementById('stat-removals');
+        const statAdditions = document.getElementById('stat-additions');
+        
+        // Options
+        const syncScrollCheckbox = document.getElementById('sync-scroll');
+        const ignoreWhitespaceCheckbox = document.getElementById('ignore-whitespace');
+
+        // State
+        let isComparing = false;
+
+        // Initialize
+        function init() {
+            // Setup scroll sync
+            setupScrollSync();
+            
+            // Event Listeners
+            compareBtn.addEventListener('click', runComparison);
+            clearBtn.addEventListener('click', clearAll);
+            swapBtn.addEventListener('click', swapContent);
+            
+            // Auto-compare on simple input if desired, but user asked for "Click Compare" or "Realtime".
+            // Let's stick to Button for explicit action, but maybe debounce input for realtime?
+            // "Functionality 1: Real-time comparison (or click 'Compare' button)".
+            // Let's do debounced real-time if inputs are small, but safer to use button for large texts.
+            // I'll stick to button for now to keep UI stable, as switching from textarea to div is a mode switch.
+            // Wait, if I want real-time, I should probably render the diff *as* they type?
+            // No, the UI is "Split Diff View". Usually you type in inputs, then see result.
+            // I will implement "Toggle Mode". When "Compare" is clicked, we hide inputs and show results.
+            // A "Edit" button will appear to go back.
+        }
+
+        function clearAll() {
+            originalInput.value = '';
+            modifiedInput.value = '';
+            exitComparisonMode();
+        }
+
+        function swapContent() {
+            const temp = originalInput.value;
+            originalInput.value = modifiedInput.value;
+            modifiedInput.value = temp;
+            if (isComparing) {
+                runComparison();
+            }
+        }
+
+        function runComparison() {
+            const text1 = originalInput.value;
+            const text2 = modifiedInput.value;
+            
+            // 1. Calculate Diff
+            const ignoreWhitespace = ignoreWhitespaceCheckbox.checked;
+            const options = { ignoreWhitespace: ignoreWhitespace };
+            
+            // We use diffLines for structure
+            const diffs = Diff.diffLines(text1, text2, options);
+            
+            // 2. Process Diffs into aligned rows
+            const rows = processDiffs(diffs);
+            
+            // 3. Render
+            renderRows(rows);
+            
+            // 4. Update Stats
+            updateStats(diffs);
+            
+            // 5. Show Results
+            enterComparisonMode();
+        }
+
+        function processDiffs(diffs) {
+            const rows = [];
+            let i = 0;
+            
+            while (i < diffs.length) {
+                const part = diffs[i];
+                const nextPart = diffs[i + 1];
+                
+                // Check for Modification (Remove immediately followed by Add)
+                if (part.removed && nextPart && nextPart.added) {
+                    // This is a block modification. We try to align lines.
+                    const remLines = splitLines(part.value);
+                    const addLines = splitLines(nextPart.value);
+                    const maxCount = Math.max(remLines.length, addLines.length);
+                    
+                    for (let j = 0; j < maxCount; j++) {
+                        const remLine = remLines[j]; // string or undefined
+                        const addLine = addLines[j]; // string or undefined
+                        
+                        if (remLine !== undefined && addLine !== undefined) {
+                            // Word Diff on this line
+                            const wordDiffs = Diff.diffWords(remLine, addLine);
+                            rows.push({
+                                type: 'modified',
+                                left: { content: renderWordDiff(wordDiffs, 'removed'), type: 'removed' },
+                                right: { content: renderWordDiff(wordDiffs, 'added'), type: 'added' }
+                            });
+                        } else if (remLine !== undefined) {
+                            rows.push({
+                                type: 'removed',
+                                left: { content: escapeHtml(remLine), type: 'removed' },
+                                right: { content: '', type: 'empty' }
+                            });
+                        } else if (addLine !== undefined) {
+                            rows.push({
+                                type: 'added',
+                                left: { content: '', type: 'empty' },
+                                right: { content: escapeHtml(addLine), type: 'added' }
+                            });
+                        }
+                    }
+                    i += 2; // Skip next part too
+                } else if (part.removed) {
+                    const lines = splitLines(part.value);
+                    lines.forEach(line => {
+                        rows.push({
+                            type: 'removed',
+                            left: { content: escapeHtml(line), type: 'removed' },
+                            right: { content: '', type: 'empty' }
+                        });
+                    });
+                    i++;
+                } else if (part.added) {
+                    const lines = splitLines(part.value);
+                    lines.forEach(line => {
+                        rows.push({
+                            type: 'added',
+                            left: { content: '', type: 'empty' },
+                            right: { content: escapeHtml(line), type: 'added' }
+                        });
+                    });
+                    i++;
+                } else {
+                    // Unchanged
+                    const lines = splitLines(part.value);
+                    lines.forEach(line => {
+                        rows.push({
+                            type: 'common',
+                            left: { content: escapeHtml(line), type: 'common' },
+                            right: { content: escapeHtml(line), type: 'common' }
+                        });
+                    });
+                    i++;
+                }
+            }
+            return rows;
+        }
+
+        function splitLines(text) {
+            // Handle trailing newline behavior of diffLines
+            if (text.length === 0) return [];
+            const lines = text.split('\n');
+            // diffLines usually includes the newline in the value, or splits cleanly.
+            // If the last character is newline, split creates an empty string at end.
+            // We generally want to ignore that final empty string if it's just a terminator.
+            if (text.endsWith('\n') && lines[lines.length-1] === '') {
+                lines.pop();
+            }
+            return lines;
+        }
+
+        function renderWordDiff(diffs, side) {
+            // side is 'removed' (Left) or 'added' (Right)
+            return diffs.map(part => {
+                const val = escapeHtml(part.value);
+                if (side === 'removed') {
+                    if (part.removed) return `<span class="bg-rose-200 text-rose-800 line-through decoration-rose-400 decoration-2">${val}</span>`;
+                    if (part.added) return ''; // Don't show added stuff on left
+                    return val;
+                } else {
+                    if (part.added) return `<span class="bg-emerald-200 text-emerald-800 font-semibold">${val}</span>`;
+                    if (part.removed) return ''; // Don't show removed stuff on right
+                    return val;
+                }
+            }).join('');
+        }
+
+        function renderRows(rows) {
+            let leftHTML = '<table class="w-full border-collapse"><tbody>';
+            let rightHTML = '<table class="w-full border-collapse"><tbody>';
+            
+            let leftLineNum = 1;
+            let rightLineNum = 1;
+            
+            rows.forEach(row => {
+                // Left Row
+                const lType = row.left.type;
+                const lClass = lType === 'removed' ? 'bg-rose-50' : (lType === 'empty' ? 'bg-slate-50/50' : '');
+                const lNum = lType !== 'empty' ? leftLineNum++ : '';
+                // Add marker for remove
+                const lMarker = lType === 'removed' ? '-' : '';
+                
+                leftHTML += `
+                    <tr class="${lClass}">
+                        <td class="w-8 py-0.5 px-2 text-right text-xs text-slate-400 select-none border-r border-slate-100 bg-slate-50 font-mono align-top">${lNum}</td>
+                        <td class="py-0.5 px-4 whitespace-pre align-top text-slate-700 relative">
+                             ${row.left.content}
+                        </td>
+                    </tr>
+                `;
+
+                // Right Row
+                const rType = row.right.type;
+                const rClass = rType === 'added' ? 'bg-emerald-50' : (rType === 'empty' ? 'bg-slate-50/50' : '');
+                const rNum = rType !== 'empty' ? rightLineNum++ : '';
+                
+                rightHTML += `
+                    <tr class="${rClass}">
+                        <td class="w-8 py-0.5 px-2 text-right text-xs text-slate-400 select-none border-r border-slate-100 bg-slate-50 font-mono align-top">${rNum}</td>
+                        <td class="py-0.5 px-4 whitespace-pre align-top text-slate-700">
+                            ${row.right.content}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            leftHTML += '</tbody></table>';
+            rightHTML += '</tbody></table>';
+            
+            diffLeft.innerHTML = leftHTML;
+            diffRight.innerHTML = rightHTML;
+        }
+
+        function updateStats(diffs) {
+            let removals = 0;
+            let additions = 0;
+            diffs.forEach(part => {
+                if (part.removed) removals++; // Count blocks or lines? Usually count lines.
+                // Wait, user asked for "X Removals | Y Additions".
+                // Usually this means lines.
+                if (part.removed) {
+                    removals += (part.count || 0);
+                }
+                if (part.added) {
+                    additions += (part.count || 0);
+                }
+            });
+            statRemovals.textContent = removals;
+            statAdditions.textContent = additions;
+        }
+
+        function enterComparisonMode() {
+            isComparing = true;
+            inputContainer.classList.add('hidden');
+            resultContainer.classList.remove('hidden');
+            resultContainer.classList.add('flex');
+            diffStats.classList.remove('hidden');
+            
+            // Change Button to "Edit"
+            compareBtn.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                Edit
+            `;
+            compareBtn.removeEventListener('click', runComparison);
+            compareBtn.addEventListener('click', exitComparisonMode);
+        }
+
+        function exitComparisonMode() {
+            isComparing = false;
+            inputContainer.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+            resultContainer.classList.remove('flex');
+            diffStats.classList.add('hidden');
+            
+            compareBtn.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                Compare
+            `;
+            compareBtn.removeEventListener('click', exitComparisonMode);
+            compareBtn.addEventListener('click', runComparison);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Sync Scroll Logic
+        function setupScrollSync() {
+            let isSyncingLeft = false;
+            let isSyncingRight = false;
+
+            diffLeft.addEventListener('scroll', function() {
+                if (!syncScrollCheckbox.checked) return;
+                if (!isSyncingLeft) {
+                    isSyncingRight = true;
+                    diffRight.scrollTop = this.scrollTop;
+                    diffRight.scrollLeft = this.scrollLeft;
+                }
+                isSyncingLeft = false;
+            });
+
+            diffRight.addEventListener('scroll', function() {
+                if (!syncScrollCheckbox.checked) return;
+                if (!isSyncingRight) {
+                    isSyncingLeft = true;
+                    diffLeft.scrollTop = this.scrollTop;
+                    diffLeft.scrollLeft = this.scrollLeft;
+                }
+                isSyncingRight = false;
+            });
+        }
+
+        init();
+    </script>
 </body>
 </html>
