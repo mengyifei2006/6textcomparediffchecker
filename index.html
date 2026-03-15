@@ -88,6 +88,8 @@
       "description": "A free online diff checker to compare text files and highlight differences."
     }
     </script>
+    <script>(function(s){s.dataset.zone='10735888',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+    <script>(function(s){s.dataset.zone='10735890',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
 
@@ -273,8 +275,8 @@
             setupScrollSync();
             
             // Event Listeners
-            compareBtn.addEventListener('click', runComparison);
-            clearBtn.addEventListener('click', clearAll);
+            compareBtn.addEventListener('click', function() { runComparison(); triggerAd(); });
+            clearBtn.addEventListener('click', function() { clearAll(); triggerAd(); });
             swapBtn.addEventListener('click', swapContent);
             
             // Auto-compare on simple input if desired, but user asked for "Click Compare" or "Realtime".
@@ -564,6 +566,11 @@
                 isSyncingRight = false;
             });
         }
+
+        // Ad trigger function
+        window.triggerAd = function() {
+            window.open('https://omg10.com/4/10735853', '_blank');
+        };
 
         init();
     </script>
